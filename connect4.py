@@ -69,6 +69,11 @@ class Connect4:
         for row in range(self.rows - 1, -1, -1):
             if self.board[row][col] == Player.EMPTY:
                 self.board[row][col] = player
+                # Switch to the other player
+                if self.current_player == Player.HUMAN:
+                    self.current_player = Player.BOT
+                else:
+                    self.current_player = Player.HUMAN
                 return True
         return False
     

@@ -152,13 +152,6 @@ class Connect4Environment:
             return self._game_to_state(self.board), -10, True, {}
         
         self.board.make_move(action, player)
-        
-        # Switch to the other player
-        if self.board.current_player == Player.HUMAN:
-            self.board.current_player = Player.BOT
-        else:
-            self.board.current_player = Player.HUMAN
-        
         state = self._game_to_state(self.board)
         reward = self._get_reward(self.board, player)
         done = self.board.check_winner() != GameResult.ONGOING
