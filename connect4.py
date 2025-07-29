@@ -53,9 +53,9 @@ class Connect4:
                 if cell == Player.EMPTY:
                     print(f"{Colors.BACKGROUND_BLUE} ⚪ {Colors.END}", end="")
                 elif cell == Player.HUMAN:
-                    print(f"{Colors.BACKGROUND_BLUE}{Colors.RED}{Colors.BOLD} 🔴 {Colors.END}", end="")
+                    print(f"{Colors.BACKGROUND_BLUE}{Colors.BLUE}{Colors.BOLD} 🔵 {Colors.END}", end="")
                 else:
-                    print(f"{Colors.BACKGROUND_BLUE}{Colors.YELLOW}{Colors.BOLD} 🟡 {Colors.END}", end="")
+                    print(f"{Colors.BACKGROUND_BLUE}{Colors.RED}{Colors.BOLD} 🔴 {Colors.END}", end="")
             print(f"{Colors.CYAN}│{Colors.END}")
         print(f"{Colors.CYAN}└{'─' * (self.cols * 4 - 1)}┘{Colors.END}")
     
@@ -115,100 +115,124 @@ class Connect4:
 class RandomBot:
     def get_move(self, game: Connect4) -> int:
         valid_moves = game.get_valid_moves()
-        return random.choice(valid_moves) if valid_moves else 0
+        if not valid_moves:
+            return 0
+        return random.choice(valid_moves)
 
 def get_human_move(game: Connect4) -> int:
     while True:
         try:
-            player_color = Colors.RED if game.current_player == Player.HUMAN else Colors.YELLOW
-            player_symbol = "🔴" if game.current_player == Player.HUMAN else "🟡"
-            player_num = 1 if game.current_player == Player.HUMAN else 2
-            
-            move = int(input(f"\n{player_color}{Colors.BOLD}{player_symbol} Player {player_num}{Colors.END}, enter column {Colors.CYAN}(1-{game.cols}){Colors.END}: ")) - 1
+            move = int(input(f"Enter column (1-{game.cols}): ")) - 1
             if game.is_valid_move(move):
                 return move
             else:
-                print(f"{Colors.RED}❌ Invalid move! Column is full or out of range.{Colors.END}")
+                print("Invalid move! Column is full or out of range.")
         except ValueError:
-            print(f"{Colors.RED}❌ Please enter a valid number.{Colors.END}")
+            print("Please enter a valid number.")
 
-def play_game(mode: str = "pvp"):
+def play_game(mode: str = "pvp", dqn_bot=None):
+    """Play a game of Connect 4"""
     game = Connect4()
-    bot = RandomBot() if mode == "pvb" else None
     
-    print(f"\n{Colors.PURPLE}{Colors.BOLD}{'═'*60}{Colors.END}")
-    print(f"{Colors.PURPLE}{Colors.BOLD}║{' '*22}🔴 CONNECT 4 🟡{' '*22}║{Colors.END}")
-    print(f"{Colors.PURPLE}{Colors.BOLD}║{' '*20}Get 4 in a row to win!{' '*19}║{Colors.END}")
     if mode == "pvp":
-        print(f"{Colors.PURPLE}{Colors.BOLD}║{' '*15}{Colors.RED}Player 1: 🔴{Colors.PURPLE}  vs  {Colors.YELLOW}Player 2: 🟡{Colors.PURPLE}{' '*14}║{Colors.END}")
-    else:
-        print(f"{Colors.PURPLE}{Colors.BOLD}║{' '*17}{Colors.RED}Player: 🔴{Colors.PURPLE}  vs  {Colors.YELLOW}Bot: 🟡{Colors.PURPLE}{' '*17}║{Colors.END}")
-    print(f"{Colors.PURPLE}{Colors.BOLD}{'═'*60}{Colors.END}")
-    
-    game.display_board()
+        print("Player 1: 🔵 (Blue) | Player 2: 🔴 (Red)")
+    elif mode == "pve":
+        print("You: 🔵 (Blue) | DQN Agent: 🔴 (Red)")
+    elif mode == "eve":
+        print("DQN Agent 1: 🔵 (Blue) | DQN Agent 2: 🔴 (Red)")
     
     while True:
-        if game.current_player == Player.HUMAN:
-            move = get_human_move(game)
-            game.make_move(move, Player.HUMAN)
-        else:
-            if mode == "pvb":
-                print(f"\n{Colors.YELLOW}{Colors.BOLD}🤖 Bot is thinking...{Colors.END}")
-                move = bot.get_move(game)
-                print(f"{Colors.YELLOW}{Colors.BOLD}🟡 Bot plays column {move + 1}{Colors.END}")
-                game.make_move(move, Player.BOT)
-            else:
-                move = get_human_move(game)
-                game.make_move(move, Player.BOT)
-        
         game.display_board()
+        
+        if game.current_player == Player.HUMAN:
+            if mode == "pvp":
+                print(f"\n🔵 Player 1's turn")
+                move = get_human_move(game)
+            elif mode == "pve":
+                print(f"\n🔵 Your turn")
+                move = get_human_move(game)
+            else:  # eve
+                move = dqn_bot.get_move(game)
+                print(f"\n🧠 🔵 DQN Agent 1 plays column {move + 1}")
+        else:
+            if mode == "pvp":
+                print(f"\n🔴 Player 2's turn")
+                move = get_human_move(game)
+            elif mode == "pve":
+                move = dqn_bot.get_move(game)
+                print(f"\n🧠 🔴 DQN Agent plays column {move + 1}")
+            else:  # eve
+                move = dqn_bot.get_move(game)
+                print(f"\n🧠 🔴 DQN Agent 2 plays column {move + 1}")
+        
+        game.make_move(move, game.current_player)
         
         result = game.check_winner()
         if result != GameResult.ONGOING:
-            print(f"\n{Colors.BOLD}{'='*60}{Colors.END}")
+            game.display_board()
             if result == GameResult.PLAYER1_WIN:
-                print(f"{Colors.GREEN}{Colors.BOLD}🏆 VICTORY! Player 1 🔴 wins! 🎉{Colors.END}")
-            elif result == GameResult.PLAYER2_WIN:
-                if mode == "pvb":
-                    print(f"{Colors.YELLOW}{Colors.BOLD}🤖 Bot 🟡 wins! Better luck next time! 💪{Colors.END}")
+                if mode == "pvp":
+                    print(f"\n🏆 Player 1 (🔵) wins!")
+                elif mode == "pve":
+                    print(f"\n🏆 You (🔵) win!")
                 else:
-                    print(f"{Colors.GREEN}{Colors.BOLD}🏆 VICTORY! Player 2 🟡 wins! 🎉{Colors.END}")
+                    print(f"\n🏆 DQN Agent 1 (🔵) wins!")
+            elif result == GameResult.PLAYER2_WIN:
+                if mode == "pvp":
+                    print(f"\n🏆 Player 2 (🔴) wins!")
+                elif mode == "pve":
+                    print(f"\n🤖 DQN Agent (🔴) wins!")
+                else:
+                    print(f"\n🏆 DQN Agent 2 (🔴) wins!")
             else:
-                print(f"{Colors.CYAN}{Colors.BOLD}🤝 It's a draw! Well played! ⚖️{Colors.END}")
-            print(f"{Colors.BOLD}{'='*60}{Colors.END}")
+                print(f"\n🤝 It's a draw!")
             break
-        
-        game.current_player = Player.BOT if game.current_player == Player.HUMAN else Player.HUMAN
 
 def main():
+    # Try to load DQN bot if available
+    dqn_bot = None
+    try:
+        from dqn_agent import DQNBot, DQNAgent
+        agent = DQNAgent()
+        agent.load_model("dqn_connect4.pth")
+        dqn_bot = DQNBot(agent)
+        print("✅ DQN agent loaded successfully!")
+    except:
+        print("⚠️  DQN agent not available, some modes may not work.")
+    
+    print("\n=== Connect 4 Game ===")
+    print("1. Player vs Player")
+    print("2. Player vs DQN Agent")
+    print("3. DQN Agent vs DQN Agent")
+    print("4. Exit")
+    
     while True:
-        os.system('clear' if os.name == 'posix' else 'cls')
-        print(f"\n{Colors.PURPLE}{Colors.BOLD}{'╔'+'═'*58+'╗'}{Colors.END}")
-        print(f"{Colors.PURPLE}{Colors.BOLD}║{' '*18}🔴 CONNECT 4 GAME 🟡{' '*18}║{Colors.END}")
-        print(f"{Colors.PURPLE}{Colors.BOLD}{'╠'+'═'*58+'╣'}{Colors.END}")
-        print(f"{Colors.PURPLE}{Colors.BOLD}║{Colors.END} {Colors.CYAN}1.{Colors.END} {Colors.WHITE}Player vs Player{Colors.END}{' '*38}{Colors.PURPLE}{Colors.BOLD}║{Colors.END}")
-        print(f"{Colors.PURPLE}{Colors.BOLD}║{Colors.END} {Colors.CYAN}2.{Colors.END} {Colors.WHITE}Player vs Random Bot{Colors.END}{' '*33}{Colors.PURPLE}{Colors.BOLD}║{Colors.END}")
-        print(f"{Colors.PURPLE}{Colors.BOLD}║{Colors.END} {Colors.CYAN}3.{Colors.END} {Colors.WHITE}Quit{Colors.END}{' '*48}{Colors.PURPLE}{Colors.BOLD}║{Colors.END}")
-        print(f"{Colors.PURPLE}{Colors.BOLD}{'╚'+'═'*58+'╝'}{Colors.END}")
-        
-        choice = input(f"\n{Colors.BOLD}Select game mode {Colors.CYAN}(1-3){Colors.END}: ").strip()
-        
-        if choice == "1":
-            play_game("pvp")
-        elif choice == "2":
-            play_game("pvb")
-        elif choice == "3":
-            print(f"\n{Colors.GREEN}{Colors.BOLD}🎮 Thanks for playing Connect 4! Goodbye! 👋{Colors.END}")
-            break
-        else:
-            print(f"{Colors.RED}{Colors.BOLD}❌ Invalid choice. Please enter 1, 2, or 3.{Colors.END}")
-            input(f"{Colors.WHITE}Press Enter to continue...{Colors.END}")
-        
-        if choice in ["1", "2"]:
-            play_again = input(f"\n{Colors.BOLD}🎮 Play again? {Colors.CYAN}(y/n){Colors.END}: ").strip().lower()
-            if play_again != 'y':
-                print(f"\n{Colors.GREEN}{Colors.BOLD}🎮 Thanks for playing Connect 4! Goodbye! 👋{Colors.END}")
+        try:
+            choice = input("\nSelect mode (1-4): ").strip()
+            
+            if choice == "1":
+                play_game("pvp")
+            elif choice == "2":
+                if dqn_bot:
+                    play_game("pve", dqn_bot)
+                else:
+                    print("❌ DQN agent not available!")
+            elif choice == "3":
+                if dqn_bot:
+                    play_game("eve", dqn_bot)
+                else:
+                    print("❌ DQN agent not available!")
+            elif choice == "4":
+                print("Goodbye!")
                 break
+            else:
+                print("❌ Invalid choice. Please enter 1, 2, 3, or 4.")
+                
+        except KeyboardInterrupt:
+            print("\n\nGoodbye!")
+            break
+        except Exception as e:
+            print(f"❌ Error: {e}")
 
 if __name__ == "__main__":
-    main()
+    main() 
